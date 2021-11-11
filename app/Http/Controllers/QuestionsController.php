@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Topic;
 use App\Question;
 
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx; 
 class QuestionsController extends Controller
 {
     /**
@@ -43,10 +45,17 @@ class QuestionsController extends Controller
       ]);
       if($request->hasFile('question_file')){
           $path = $request->file('question_file')->getRealPath();
-          $data = \Excel::load($path)->get();
-          if($data->count()){
-              foreach ($data as $key => $value) {
-                  $arr[] = ['topic_id' => $request->topic_id, 'question' => $value->question, 'a' => $value->a, 'b' => $value->b, 'c' => $value->c, 'd' => $value->d, 'answer' => $value->answer, 'code_snippet' => $value->code_snippet != '' ? $value->code_snippet : '-', 'answer_exp' => $value->answer_exp != '' ? $value->answer_exp : '-'];
+          \PhpOffice\PhpSpreadsheet\Settings::setLibXmlLoaderOptions(LIBXML_PARSEHUGE);
+          $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
+          
+          $spreadsheet = $reader->load($path);
+          $sheetData = $spreadsheet->getActiveSheet(1)->toArray();
+          if(count($sheetData) > 1){
+              foreach ($sheetData as $key => $value) {
+                  if($key > 0) {
+                    $arr[] = ['topic_id' => $request->topic_id, 'question' => $value[1], 'a' => $value[2], 'b' => $value[3], 'c' => $value[4], 'd' => $value[5], 'answer' => $value[6], 'code_snippet' => $value[7] != '' ? $value[7] : '-', 'answer_exp' => $value[8] != '' ? $value[8] : '-'];
+                  }
+                  
               }
               if(!empty($arr)){
                   \DB::table('questions')->insert($arr);
